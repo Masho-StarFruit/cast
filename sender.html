@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キャスト送信</title>
+<style>
+  body{font-family:sans-serif;padding:20px}
+  input{width:100%;padding:14px;font-size:18px;margin:12px 0}
+  button{width:100%;padding:14px;font-size:18px;background:#ff0000;color:#fff;border:none;border-radius:10px}
+</style>
+</head>
+<body>
+<h2>キャストする</h2>
+<p>1. テレビ側に表示されたコードを入れて<br>2. 「画面を送る」を押して<br>3. YouTubeを開けば、そのまま映るよ</p>
+<input id="targetId" placeholder="コードを入力">
+<button id="start">画面を送る</button>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+  const peer = new Peer();
+  document.getElementById('start').onclick = async () => {
+    const target = document.getElementById('targetId').value;
+    if(!target) return alert('コードを入れて！');
+    const stream = await navigator.mediaDevices.getDisplayMedia({video:true, audio:true});
+    peer.call(target, stream);
+  };
+</script>
+</body>
+</html>

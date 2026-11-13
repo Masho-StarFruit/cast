@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キャスト受信</title>
+<style>
+  body{margin:0;background:#000}
+  video{width:100vw;height:100vh;object-fit:contain}
+  #id{position:fixed;top:12px;left:12px;color:#fff;background:rgba(0,0,0,.6);padding:10px 14px;border-radius:10px;font-size:22px}
+</style>
+</head>
+<body>
+<div id="id">接続待ち...</div>
+<video id="view" autoplay playsinline></video>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+  const peer = new Peer();
+  const video = document.getElementById('view');
+  const label = document.getElementById('id');
+  peer.on('open', id => { label.textContent = 'コード: ' + id; });
+  peer.on('call', call => {
+    call.answer();
+    call.on('stream', s => { video.srcObject = s; label.style.display='none'; });
+  });
+</script>
+</body>
+</html>
