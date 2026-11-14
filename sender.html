@@ -1,29 +1,16 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>キャスト送信</title>
-<style>
-  body{font-family:sans-serif;padding:20px}
-  input{width:100%;padding:14px;font-size:18px;margin:12px 0}
-  button{width:100%;padding:14px;font-size:18px;background:#ff0000;color:#fff;border:none;border-radius:10px}
-</style>
-</head>
-<body>
-<h2>キャストする</h2>
-<p>1. テレビ側に表示されたコードを入れて<br>2. 「画面を送る」を押して<br>3. YouTubeを開けば、そのまま映るよ</p>
-<input id="targetId" placeholder="コードを入力">
-<button id="start">画面を送る</button>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>
-  const peer = new Peer();
-  document.getElementById('start').onclick = async () => {
-    const target = document.getElementById('targetId').value;
-    if(!target) return alert('コードを入れて！');
-    const stream = await navigator.mediaDevices.getDisplayMedia({video:true, audio:true});
-    peer.call(target, stream);
-  };
-</script>
-</body>
-</html>
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>送信</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:20px 16px">
+<div id="a" style="display:none"><h2>端末名を決めてください</h2><input id="nm" placeholder="例:Tab60" style="font-size:24px;padding:12px;width:80%;max-width:300px;text-align:center"><br><br><button id="sv" style="font-size:24px;padding:12px 32px">決定</button></div>
+<div id="b" style="display:none"><h2>送信側</h2><p id="lb" style="font-weight:bold"></p><button id="ch" style="padding:6px 16px">名前を変える</button><br><br><input id="cd" inputmode="numeric" placeholder="7桁のコード" style="font-size:28px;padding:12px;width:80%;max-width:300px;text-align:center;letter-spacing:6px"><br><br><button id="go" style="font-size:24px;padding:12px 32px">接続する</button><p id="er" style="color:red;font-weight:bold;display:none"></p><p id="st"></p></div>
+<div id="c" style="display:none"><p style="font-size:32px;font-weight:bold;margin:0">送信中...</p><p id="wt" style="font-size:22px">受信側に映像が出るのを待っています...</p><p id="ok" style="display:none;font-size:36px;font-weight:bold;color:green">接続しました。</p><button id="share" style="font-size:24px;padding:12px 32px;margin:16px 0">画面共有を開始する</button><p id="er2" style="color:red;font-weight:bold;display:none"></p><div style="font-size:24px;font-weight:bold"><p id="t1" style="margin:0">タイムゾーン <span id="z"></span> <span id="d"></span> <span id="t"></span></p><div id="t2" style="display:none"><p style="margin:0">送信側 <span id="z2"></span> <span id="d2"></span> <span id="t2t"></span></p><p style="margin:8px 0 0">受信側 <span id="rz">---</span> <span id="rd"></span> <span id="rt"></span></p></div></div><br><br><button id="off" style="font-size:20px;padding:10px 24px">切断する</button></div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script><script>
+let n=localStorage.getItem('sn'),peer,conn,stream,timer,rTZ=null,code='';const TZ=Intl.DateTimeFormat().resolvedOptions().timeZone;
+function scr(){document.getElementById('a').style.display=n?'none':'block';document.getElementById('b').style.display=n?'block':'none';if(n)document.getElementById('lb').textContent='端末名:'+n}scr();
+document.getElementById('sv').onclick=()=>{let v=document.getElementById('nm').value.trim();if(!v)return alert('端末名を入れてね');localStorage.setItem('sn',v);n=v;scr()};
+document.getElementById('ch').onclick=()=>{localStorage.removeItem('sn');n=null;scr()};
+function tm(){let now=new Date(),d=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0'),t=now.toLocaleTimeString('ja-JP');document.getElementById('z').textContent=TZ;document.getElementById('d').textContent=d;document.getElementById('t').textContent=t;document.getElementById('z2').textContent=TZ;document.getElementById('d2').textContent=d;document.getElementById('t2t').textContent=t;let dual=rTZ&&rTZ!==TZ;document.getElementById('t1').style.display=dual?'none':'block';document.getElementById('t2').style.display=dual?'block':'none';return{d,t}}setInterval(tm,1000);tm();
+function err(m,el){let e=document.getElementById(el||'er');e.textContent=m;e.style.display='block'}
+document.getElementById('go').onclick=()=>{code=document.getElementById('cd').value.trim();document.getElementById('st').textContent='接続ボタン:'+code;if(code.length!==7)return err('7桁のコードを入れてね');if(typeof Peer==='undefined')return err('ネットに繋がっていません。Wi-Fiを確認して更新してね');if(!n)return err('まず端末名を決めてね');document.getElementById('b').style.display='none';document.getElementById('c').style.display='block';peer=new Peer();peer.on('open',()=>{conn=peer.connect('code-'+code);conn.on('open',()=>{conn.send({type:'hello',name:n});timer=setInterval(()=>{let o=tm();if(conn.open)conn.send({type:'time',name:n,timeZone:TZ,date:o.d,time:o.t})},1000)});conn.on('data',d=>{if(d.type==='receiverTime'){rTZ=d.timeZone;document.getElementById('rz').textContent=rTZ;document.getElementById('rd').textContent=d.date;document.getElementById('rt').textContent=d.time}if(d.type==='videoShown'){document.getElementById('wt').style.display='none';document.getElementById('ok').style.display='block'}})});peer.on('error',e=>err('接続エラー:'+e.type))};
+document.getElementById('share').onclick=async()=>{document.getElementById('er2').style.display='none';if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia)return err('このブラウザは画面共有に対応してません。','er2');try{stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false})}catch(e){return err('画面共有が始まらなかったよ。もう一度「画面共有を開始する」を押して、「画面全体」→「今すぐ開始」を押してね','er2')}document.getElementById('share').style.display='none';if(peer&&conn&&conn.open)peer.call('code-'+code,stream);stream.getVideoTracks()[0].onended=()=>{document.getElementById('share').style.display='inline-block';err('画面共有が終わりました。もう一度押してね','er2')}};
+document.getElementById('off').onclick=()=>{if(timer)clearInterval(timer);if(stream)stream.getTracks().forEach(x=>x.stop());if(conn)conn.close();if(peer)peer.destroy();location.reload()};
+</script></body></html>
