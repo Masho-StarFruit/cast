@@ -1,28 +1,12 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>キャスト受信</title>
-<style>
-  body{margin:0;background:#000}
-  video{width:100vw;height:100vh;object-fit:contain}
-  #id{position:fixed;top:12px;left:12px;color:#fff;background:rgba(0,0,0,.6);padding:10px 14px;border-radius:10px;font-size:22px}
-</style>
-</head>
-<body>
-<div id="id">接続待ち...</div>
-<video id="view" autoplay playsinline></video>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script>
-  const peer = new Peer();
-  const video = document.getElementById('view');
-  const label = document.getElementById('id');
-  peer.on('open', id => { label.textContent = 'コード: ' + id; });
-  peer.on('call', call => {
-    call.answer();
-    call.on('stream', s => { video.srcObject = s; label.style.display='none'; });
-  });
-</script>
-</body>
-</html>
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>受信</title></head>
+<body style="font-family:sans-serif;text-align:center;padding:0;margin:0;background:#000">
+<div id="w" style="background:#fff;padding:20px 16px;min-height:100vh;box-sizing:border-box"><p style="font-size:32px;font-weight:bold;margin:0">接続を待っています...</p><p style="color:red;font-size:36px;font-weight:bold;margin:60px 0 0">今回のコード</p><p id="code" style="color:red;font-size:72px;font-weight:bold;letter-spacing:8px;margin:8px 0 0">-------</p><p id="er" style="color:red;font-weight:bold;display:none"></p><p style="font-size:28px;font-weight:bold;margin:80px 0 0">タイムゾーン <span id="z"></span> <span id="d" style="margin-left:16px"></span> <span id="t" style="margin-left:16px"></span></p></div>
+<div id="cn" style="display:none;background:#fff;padding:20px 16px;min-height:100vh;box-sizing:border-box"><p id="code2" style="color:red;font-size:72px;font-weight:bold;margin:60px 0 0">-------</p><p id="nm" style="font-size:56px;font-weight:bold;margin:20px 0 0">---</p><div id="t1" style="font-size:28px;font-weight:bold;margin-top:80px">タイムゾーン <span id="z1"></span> <span id="d1" style="margin-left:16px"></span> <span id="t1t" style="margin-left:16px"></span></div><div id="t2" style="display:none;font-size:28px;font-weight:bold;margin-top:80px"><p style="margin:0">送信側 <span id="sz"></span> <span id="sd" style="margin-left:16px"></span> <span id="st" style="margin-left:16px"></span></p><p style="margin:12px 0 0">受信側 <span id="z2"></span> <span id="d2" style="margin-left:16px"></span> <span id="t2t" style="margin-left:16px"></span></p></div></div>
+<div id="vw" style="width:100vw;height:100vh;display:none"></div>
+<div id="dc" style="display:none;background:#fff;padding:80px 16px;min-height:100vh;box-sizing:border-box"><p style="font-size:32px;font-weight:bold">ページを再読み込みしてください。</p></div>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script><script>
+let code=String(Math.floor(1000000+Math.random()*9000000));document.getElementById('code').textContent=code;document.getElementById('code2').textContent='['+code+']';let TZ=Intl.DateTimeFormat().resolvedOptions().timeZone,sTZ=null,conn=null,wasConnected=false;
+function tm(){let n=new Date(),d=n.getFullYear()+'/'+String(n.getMonth()+1).padStart(2,'0')+'/'+String(n.getDate()).padStart(2,'0'),t=n.toLocaleTimeString('ja-JP');for(let [id,v] of [['z',TZ],['d',d],['t',t],['z1',TZ],['d1',d],['t1t',t],['z2',TZ],['d2',d],['t2t',t]])document.getElementById(id).textContent=v;let dual=sTZ&&sTZ!==TZ;document.getElementById('t1').style.display=dual?'none':'block';document.getElementById('t2').style.display=dual?'block':'none';return{d,t}}setInterval(()=>{let o=tm();if(conn&&conn.open)conn.send({type:'receiverTime',timeZone:TZ,date:o.d,time:o.t})},1000);tm();
+function showDc(){document.getElementById('w').style.display='none';document.getElementById('cn').style.display='none';document.getElementById('vw').style.display='none';document.getElementById('dc').style.display='block'}
+if(typeof Peer==='undefined'){let e=document.getElementById('er');e.style.display='block';e.textContent='ネットに繋がっていません。Wi-Fiを確認して更新してね'}else{let peer=new Peer('code-'+code);peer.on('connection',c=>{conn=c;wasConnected=true;c.on('data',d=>{if(d.type==='hello'){document.getElementById('w').style.display='none';document.getElementById('cn').style.display='block';document.getElementById('nm').textContent=d.name+'と接続中です。'}if(d.type==='time'){sTZ=d.timeZone;document.getElementById('sz').textContent=d.timeZone;document.getElementById('sd').textContent=d.date;document.getElementById('st').textContent=d.time}});c.on('close',()=>{if(wasConnected)showDc()})});peer.on('call',call=>{call.answer();call.on('stream',s=>{let v=document.createElement('video');v.srcObject=s;v.autoplay=true;v.playsInline=true;v.style.cssText='width:100vw;height:100vh;object-fit:contain;background:#000;display:block';document.getElementById('vw').appendChild(v);v.onplaying=()=>{document.getElementById('w').style.display='none';document.getElementById('cn').style.display='none';document.getElementById('vw').style.display='block';if(conn&&conn.open)conn.send({type:'videoShown'})}});call.on('close',()=>{if(wasConnected)showDc()})});peer.on('disconnected',()=>{if(wasConnected)showDc()});peer.on('close',()=>{if(wasConnected)showDc()});peer.on('error',e=>{let el=document.getElementById('er');el.style.display='block';el.textContent='接続エラー:'+e.type})}
+</script></body></html>
